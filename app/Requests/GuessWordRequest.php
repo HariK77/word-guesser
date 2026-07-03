@@ -23,7 +23,7 @@ class GuessWordRequest
      */
     public function __construct()
     {
-        $this->data = $_GET;
+        $this->data = $_GET ?? [];
     }
 
     /**
@@ -48,7 +48,7 @@ class GuessWordRequest
     protected function validateKnownLetters(): void
     {
         $config = config('app');
-        $wordLength = $config['word_length'];
+        $wordLength = $config['word_length'] ?? 5;
         $knownCount = 0;
 
         for ($i = 1; $i <= $wordLength; $i++) {
@@ -65,8 +65,9 @@ class GuessWordRequest
         }
 
         // At least one letter should be known
-        if ($knownCount < $config['min_known_letters']) {
-            $this->errors['known_letters'] = "Please provide at least {$config['min_known_letters']} known letter.";
+        $minLetters = $config['min_known_letters'] ?? 1;
+        if ($knownCount < $minLetters) {
+            $this->errors['known_letters'] = "Please provide at least {$minLetters} known letter.";
         }
     }
 
@@ -92,8 +93,9 @@ class GuessWordRequest
                 }
             }
 
-            if (count($letters) > $config['max_excluded_letters']) {
-                $this->errors['excluded'] = "Maximum {$config['max_excluded_letters']} excluded letters allowed.";
+            $maxExcluded = $config['max_excluded_letters'] ?? 26;
+            if (count($letters) > $maxExcluded) {
+                $this->errors['excluded'] = "Maximum {$maxExcluded} excluded letters allowed.";
             }
         }
     }
@@ -108,6 +110,12 @@ class GuessWordRequest
         }
 
         $value = $this->data[$key];
+        
+        // Handle non-string values
+        if (!is_string($value)) {
+            return '';
+        }
+
         $value = trim($value);
         $value = stripslashes($value);
         $value = strtoupper($value);
@@ -121,13 +129,14 @@ class GuessWordRequest
     public function validated(): array
     {
         $config = config('app');
+        $wordLength = $config['word_length'] ?? 5;
         $validated = [
             'known_letters' => [],
             'excluded_letters' => [],
         ];
 
         // Extract known letters
-        for ($i = 1; $i <= $config['word_length']; $i++) {
+        for ($i = 1; $i <= $wordLength; $i++) {
             $validated['known_letters'][] = $this->sanitizeInput("l{$i}");
         }
 

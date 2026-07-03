@@ -10,14 +10,51 @@
  * @param mixed $default Default value
  * @return mixed Configuration value
  */
-function config(string $key, mixed $default = null): mixed
+function config(string $key = '', mixed $default = null): mixed
 {
     static $config = null;
 
     if ($config === null) {
-        $config = require dirname(dirname(dirname(__FILE__))) . '/config/app.php';
+        // Try multiple paths to find config file
+        $possible_paths = [
+            dirname(dirname(dirname(__FILE__))) . '/config/app.php',
+            __DIR__ . '/../../config/app.php',
+            '../config/app.php',
+        ];
+
+        foreach ($possible_paths as $path) {
+            if (file_exists($path)) {
+                $config = require $path;
+                break;
+            }
+        }
+
+        // If still not found, return default configuration
+        if ($config === null) {
+            $config = [
+                'name' => 'Wordle Word Guesser',
+                'version' => '2.0.0',
+                'description' => 'A word guessing tool for Wordle players',
+                'env' => 'development',
+                'debug' => true,
+                'word_length' => 5,
+                'min_known_letters' => 1,
+                'max_excluded_letters' => 26,
+                'letter_start' => 65,
+                'letter_end' => 90,
+                'logs_path' => dirname(dirname(dirname(__FILE__))) . '/storage/logs',
+                'words_path' => dirname(dirname(dirname(__FILE__))) . '/storage/words',
+                'views_path' => dirname(dirname(dirname(__FILE__))) . '/resources/views',
+                'timezone' => 'UTC',
+            ];
+        }
     }
 
+    if ($key === '') {
+        return $config;
+    }
+
+    // Handle dot notation (e.g., 'app.name')
     if (strpos($key, '.') === false) {
         return $config[$key] ?? $default;
     }
@@ -45,6 +82,10 @@ function base_url(): string
     $uri = strtok($_SERVER['REQUEST_URI'] ?? '/', '?');
     $uri = rtrim(str_replace('/public/index.php', '', $uri), '/');
 
+    if (empty($uri)) {
+        $uri = '';
+    }
+
     return "{$protocol}://{$host}{$uri}/";
 }
 
@@ -63,6 +104,7 @@ function current_url(): string
 function view(string $view, array $data = [])
 {
     extract($data);
+    
     $viewPath = config('views_path') . '/' . str_replace('.', '/', $view) . '.php';
 
     if (!file_exists($viewPath)) {
@@ -102,6 +144,9 @@ function session_flash(string $type, string $message): void
 {
     if (!isset($_SESSION)) {
         session_start();
+    }
+    if (!isset($_SESSION['flash'])) {
+        $_SESSION['flash'] = [];
     }
     $_SESSION['flash'][$type] = $message;
 }
@@ -226,10 +271,11 @@ function logger(): object
 
             public function __construct()
             {
-                $this->logFile = config('logs_path') . '/app.log';
-                if (!is_dir(dirname($this->logFile))) {
-                    mkdir(dirname($this->logFile), 0755, true);
+                $logsPath = config('logs_path');
+                if (!is_dir($logsPath)) {
+                    @mkdir($logsPath, 0755, true);
                 }
+                $this->logFile = $logsPath . '/app.log';
             }
 
             public function info(string $message): void

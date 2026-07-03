@@ -1,11 +1,11 @@
 <?php
-// Extract variables
+// Extract variables with safe defaults
 $words = $words ?? [];
 $count = $count ?? 0;
 $error = $error ?? null;
 $success = $success ?? null;
 $query = $query ?? [];
-$config = config('app');
+$config = config() ?? [];
 ?>
 
 <?php include dirname(__FILE__) . '/layout.php'; ?>
@@ -14,7 +14,7 @@ $config = config('app');
     <div class="row mt-4">
         <!-- Flash Messages -->
         <div class="col-12">
-            <?php if ($error): ?>
+            <?php if (!empty($error)): ?>
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                     <i class="bi bi-exclamation-circle"></i>
                     <?= esc_html($error) ?>
@@ -22,7 +22,7 @@ $config = config('app');
                 </div>
             <?php endif; ?>
 
-            <?php if ($success): ?>
+            <?php if (!empty($success)): ?>
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                     <i class="bi bi-check-circle"></i>
                     <?= esc_html($success) ?>
@@ -41,7 +41,7 @@ $config = config('app');
                     <!-- Letter Inputs -->
                     <label class="form-label fw-bold mb-3">Known Letters</label>
                     <div class="row gap-2 mb-4">
-                        <?php for ($i = 1; $i <= $config['word_length']; $i++): ?>
+                        <?php for ($i = 1; $i <= ($config['word_length'] ?? 5); $i++): ?>
                             <div class="col flex-grow-1">
                                 <input
                                     type="text"
